@@ -1601,7 +1601,7 @@ macro_rules! impl_int_conv {
             /// Construct BigFloat from integer value.
             pub fn $from_s(i: $s) -> Self {
                 let sign = if i < 0 { DECIMAL_SIGN_NEG } else { DECIMAL_SIGN_POS };
-                Self::$from_int(i.abs() as $u, sign)
+                Self::$from_int(i.unsigned_abs(), sign)
             }
 
             /// Construct BigFloat from integer value.
@@ -2051,6 +2051,8 @@ mod tests {
         assert!(INF_NEG.atan().cmp(&HALF_PI.inv_sign()) == Some(0));
         assert!(INF_POS.atan().cmp(&HALF_PI) == Some(0));
         assert!(NAN.atan().is_nan());
+        assert!((-ONE).atan().is_negative());
+        assert!(ONE.atan().is_positive());
 
         assert!(INF_NEG.sinh().is_inf_neg());
         assert!(INF_POS.sinh().is_inf_pos());
@@ -2173,6 +2175,11 @@ mod tests {
             BigFloat::from_u128(123456789012345678901234567890123456789)
                 == BigFloat::parse("1.23456789012345678901234567890123456789e+38").unwrap()
         );
+        // Regression Tests: If the number of leading zeros were equal to the number of remaining
+        // digits in the integral part, `parse` would always yield an exponent of 39.
+        assert!(ONE == BigFloat::parse("01").unwrap());
+        assert!(BigFloat::from_u32(987654321) == BigFloat::parse("000000000987654321.0").unwrap());
+        assert!(BigFloat::parse("9.9e-1") == BigFloat::parse("0099e-2"));
     }
 
     fn fmt_to_str<'a>(f: &BigFloat, buf: &'a mut [u8]) -> WritableBuf<'a> {
